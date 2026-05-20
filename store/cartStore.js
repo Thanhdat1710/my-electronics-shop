@@ -7,6 +7,21 @@ function getCartKey() {
   return user.id ? `cart-${user.id}` : 'cart-guest';
 }
 
+const cartStorage = {
+  getItem: () => {
+    if (typeof window === 'undefined') return null;
+    return localStorage.getItem(getCartKey());
+  },
+  setItem: (_, value) => {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem(getCartKey(), value);
+  },
+  removeItem: () => {
+    if (typeof window === 'undefined') return;
+    localStorage.removeItem(getCartKey());
+  },
+};
+
 export const useCartStore = create(
   persist(
     (set, get) => ({
@@ -32,6 +47,21 @@ export const useCartStore = create(
           return { items: { ...state.items, [id]: qty } };
         }),
       clearCart: () => set({ items: {} }),
+      refreshCart: () => {
+        if (typeof window === 'undefined') return;
+        const saved = localStorage.getItem(getCartKey());
+        if (!saved) {
+          set({ items: {} });
+          return;
+        }
+
+        try {
+          const data = JSON.parse(saved);
+          set({ items: data.items || {} });
+        } catch {
+          set({ items: {} });
+        }
+      },
       totalItems: () => Object.values(get().items).reduce((a, b) => a + b, 0),
       totalPrice: (products) =>
         Object.entries(get().items).reduce((sum, [id, qty]) => {
@@ -40,7 +70,8 @@ export const useCartStore = create(
         }, 0),
     }),
     {
-      name: getCartKey(),
+      name: 'cart',
+      storage: cartStorage,
       onRehydrateStorage: () => () => {}
     }
   )
