@@ -1,14 +1,25 @@
 'use client';
 import { useCartStore } from '@/store/cartStore';
+import { useRouter } from 'next/navigation';
 
 export default function ProductCard({ product, onClick }) {
   const addItem = useCartStore(s => s.addItem);
+  const router = useRouter();
+
+  function handleAddToCart(e) {
+    e.stopPropagation();
+    const user = localStorage.getItem('user');
+    if (!user) {
+      alert('Vui lòng đăng nhập để thêm vào giỏ hàng!');
+      router.push('/account');
+      return;
+    }
+    addItem(product);
+  }
 
   return (
-    <div
-      onClick={() => onClick(product)}
-      style={{background:'white', border:'1px solid #f1f5f9', borderRadius:'16px', overflow:'hidden', cursor:'pointer'}}
-    >
+    <div onClick={() => onClick(product)}
+      style={{background:'white', border:'1px solid #f1f5f9', borderRadius:'16px', overflow:'hidden', cursor:'pointer'}}>
       <div style={{height:'120px', display:'flex', alignItems:'center', justifyContent:'center', background:'#f8fafc', fontSize:'48px'}}>
         {product.emoji}
       </div>
@@ -29,10 +40,8 @@ export default function ProductCard({ product, onClick }) {
             {product.oldPrice.toLocaleString('vi-VN')}đ
           </p>
         )}
-        <button
-          onClick={(e) => { e.stopPropagation(); addItem(product); }}
-          style={{marginTop:'8px', width:'100%', padding:'6px', background:'#3b82f6', color:'white', border:'none', borderRadius:'8px', fontSize:'12px', cursor:'pointer', fontWeight:'500'}}
-        >
+        <button onClick={handleAddToCart}
+          style={{marginTop:'8px', width:'100%', padding:'6px', background:'#3b82f6', color:'white', border:'none', borderRadius:'8px', fontSize:'12px', cursor:'pointer', fontWeight:'500'}}>
           + Thêm vào giỏ
         </button>
       </div>

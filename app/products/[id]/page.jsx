@@ -19,6 +19,16 @@ export default function ProductDetail() {
 
   if (loading) return <p style={{textAlign:'center', padding:'40px', color:'#94a3b8'}}>Đang tải...</p>;
   if (!product) return <p style={{textAlign:'center', padding:'40px', color:'#94a3b8'}}>Không tìm thấy sản phẩm</p>;
+  function handleAddToCart() {
+  const user = localStorage.getItem('user');
+  if (!user) {
+    alert('Vui lòng đăng nhập để thêm vào giỏ hàng!');
+    router.push('/account');
+    return;
+  }
+  addItem(product);
+  router.push('/cart');
+}
 
   return (
     <main style={{maxWidth:'560px', margin:'0 auto', padding:'20px 16px'}}>
@@ -48,10 +58,13 @@ export default function ProductDetail() {
           )}
           <p style={{fontSize:'13px', color:'#64748b', marginBottom:'16px', lineHeight:'1.6'}}>{product.description}</p>
           <button
-            onClick={() => { addItem(product); router.push('/cart'); }}
+            onClick={handleAddToCart}
+            
             style={{width:'100%', padding:'12px', background:'#3b82f6', color:'white', fontWeight:'600', borderRadius:'12px', border:'none', cursor:'pointer', fontSize:'14px'}}>
             🛒 Thêm vào giỏ hàng
+            
           </button>
+
         </div>
       </div>
     </main>
