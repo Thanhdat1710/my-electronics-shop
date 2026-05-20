@@ -1,10 +1,10 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { CATEGORIES } from '@/data/products';
 import ProductCard from '@/components/ProductCard';
 
-export default function Home() {
+function HomeContent() {
   const [activeCategory, setActiveCategory] = useState('all');
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -77,5 +77,13 @@ export default function Home() {
         )}
       </div>
     </main>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={<p style={{textAlign:'center', padding:'40px', color:'#94a3b8'}}>Đang tải...</p>}>
+      <HomeContent />
+    </Suspense>
   );
 }
