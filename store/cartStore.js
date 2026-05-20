@@ -49,7 +49,9 @@ export const useCartStore = create(
       clearCart: () => set({ items: {} }),
       refreshCart: () => {
         if (typeof window === 'undefined') return;
-        const saved = localStorage.getItem(getCartKey());
+        const key = getCartKey();
+        const saved = localStorage.getItem(key);
+        
         if (!saved) {
           set({ items: {} });
           return;
@@ -57,7 +59,9 @@ export const useCartStore = create(
 
         try {
           const data = JSON.parse(saved);
-          set({ items: data.items || {} });
+          // Handle both formats: full state object or just items
+          const items = data.items !== undefined ? data.items : (typeof data === 'object' && Object.keys(data).some(k => !isNaN(k)) ? data : {});
+          set({ items });
         } catch {
           set({ items: {} });
         }

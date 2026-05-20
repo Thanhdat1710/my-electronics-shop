@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCartStore } from '@/store/cartStore';
 
@@ -17,6 +17,10 @@ export default function AccountPage() {
     }
     return null;
   });
+
+  useEffect(() => {
+    refreshCart();
+  }, [user?.id, refreshCart]);
 
   async function handleSubmit() {
     setError('');
