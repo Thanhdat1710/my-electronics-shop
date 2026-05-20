@@ -1,35 +1,40 @@
-// app/products/page.jsx
+'use client';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { PRODUCTS, CATEGORIES } from '@/data/products';
 import ProductCard from '@/components/ProductCard';
 
-export default function ProductsPage({ searchParams }) {
-  const category = searchParams?.cat || 'all';
-  const filtered = category === 'all'
+export default function ProductsPage() {
+  const [activeCategory, setActiveCategory] = useState('all');
+  const router = useRouter();
+
+  const filtered = activeCategory === 'all'
     ? PRODUCTS
-    : PRODUCTS.filter(p => p.category === category);
+    : PRODUCTS.filter(p => p.category === activeCategory);
 
   return (
-    <main className="max-w-6xl mx-auto px-4 py-6">
-      {/* Filter tabs */}
-      <div className="flex gap-2 overflow-x-auto pb-3 mb-6">
+    <main style={{maxWidth:'1000px', margin:'0 auto', padding:'20px 16px'}}>
+      <div style={{display:'flex', gap:'8px', overflowX:'auto', paddingBottom:'12px', marginBottom:'16px'}}>
         {CATEGORIES.map(cat => (
-          
+          <button
             key={cat.value}
-            href={`/products?cat=${cat.value}`}
-            className={`flex-shrink-0 px-4 py-1.5 rounded-full text-sm border
-              ${category === cat.value
-                ? 'bg-blue-500 text-white border-blue-500'
-                : 'border-gray-200 text-gray-600 hover:border-blue-300'
-              }`}
+            onClick={() => setActiveCategory(cat.value)}
+            style={{flexShrink:0, padding:'6px 16px', borderRadius:'20px', border: activeCategory===cat.value ? 'none':'1px solid #e2e8f0', background: activeCategory===cat.value ? '#3b82f6':'white', color: activeCategory===cat.value ? 'white':'#64748b', fontSize:'13px', fontWeight:'500', cursor:'pointer'}}
           >
             {cat.label}
-          </a>
+          </button>
         ))}
       </div>
 
-      {/* Product grid — tự động responsive */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+      <p style={{fontSize:'13px', color:'#94a3b8', marginBottom:'12px'}}>{filtered.length} sản phẩm</p>
+
+      <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(160px, 1fr))', gap:'12px'}}>
         {filtered.map(product => (
-          <ProductCard key={product.id} product={product} />
+          <ProductCard
+            key={product.id}
+            product={product}
+            onClick={(p) => router.push(`/products/${p.id}`)}
+          />
         ))}
       </div>
     </main>
