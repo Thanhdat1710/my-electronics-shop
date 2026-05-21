@@ -1,27 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-function getCartKey() {
-  if (typeof window === 'undefined') return 'cart-guest';
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
-  return user.id ? `cart-${user.id}` : 'cart-guest';
-}
-
-const cartStorage = {
-  getItem: () => {
-    if (typeof window === 'undefined') return null;
-    return localStorage.getItem(getCartKey());
-  },
-  setItem: (_, value) => {
-    if (typeof window === 'undefined') return;
-    localStorage.setItem(getCartKey(), value);
-  },
-  removeItem: () => {
-    if (typeof window === 'undefined') return;
-    localStorage.removeItem(getCartKey());
-  },
-};
-
 export const useCartStore = create(
   persist(
     (set, get) => ({
@@ -47,25 +26,6 @@ export const useCartStore = create(
           return { items: { ...state.items, [id]: qty } };
         }),
       clearCart: () => set({ items: {} }),
-      refreshCart: () => {
-        if (typeof window === 'undefined') return;
-        const key = getCartKey();
-        const saved = localStorage.getItem(key);
-        
-        if (!saved) {
-          set({ items: {} });
-          return;
-        }
-
-        try {
-          const data = JSON.parse(saved);
-          // Handle both formats: full state object or just items
-          const items = data.items !== undefined ? data.items : (typeof data === 'object' && Object.keys(data).some(k => !isNaN(k)) ? data : {});
-          set({ items });
-        } catch {
-          set({ items: {} });
-        }
-      },
       totalItems: () => Object.values(get().items).reduce((a, b) => a + b, 0),
       totalPrice: (products) =>
         Object.entries(get().items).reduce((sum, [id, qty]) => {
@@ -74,9 +34,28 @@ export const useCartStore = create(
         }, 0),
     }),
     {
-      name: 'cart',
-      storage: cartStorage,
-      onRehydrateStorage: () => () => {}
+      name: 'cart-guest',
+      storage: {
+        getItem: (name) => {
+          if (typeof window === 'undefined') return null;
+          const user = JSON.parse(localStorage.getItem('user') || '{}');
+          const key = user.id ? `cart-${user.id}` : 'cart-guest';
+          const value = localStorage.getItem(key);
+          return value ? JSON.parse(value) : null;
+        },
+        setItem: (name, value) => {
+          if (typeof window === 'undefined') return;
+          const user = JSON.parse(localStorage.getItem('user') || '{}');
+          const key = user.id ? `cart-${user.id}` : 'cart-guest';
+          localStorage.setItem(key, JSON.stringify(value));
+        },
+        removeItem: (name) => {
+          if (typeof window === 'undefined') return;
+          const user = JSON.parse(localStorage.getItem('user') || '{}');
+          const key = user.id ? `cart-${user.id}` : 'cart-guest';
+          localStorage.removeItem(key);
+        },
+      }
     }
   )
 );
