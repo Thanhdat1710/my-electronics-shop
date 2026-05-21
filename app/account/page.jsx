@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useCartStore } from '@/store/cartStore';
 
 export default function AccountPage() {
-    const refreshCart = useCartStore(s => s.refreshCart);
+  
   const router = useRouter();
   const [mode, setMode] = useState('login');
   const [form, setForm] = useState({ name:'', email:'', password:'' });
@@ -18,9 +18,6 @@ export default function AccountPage() {
     return null;
   });
 
-  useEffect(() => {
-    refreshCart();
-  }, [user?.id, refreshCart]);
 
   async function handleSubmit() {
     setError('');
@@ -42,7 +39,7 @@ export default function AccountPage() {
 
       localStorage.setItem('user', JSON.stringify(data));
       setUser(data);
-      refreshCart();
+      window.location.reload();
     } catch {
       setError('Không thể kết nối server');
     } finally {
@@ -53,8 +50,8 @@ export default function AccountPage() {
   function handleLogout() {
   localStorage.removeItem('user');
   setUser(null);
-  refreshCart();
-  }
+  window.location.reload();
+}
   if (user) return (
     <main style={{maxWidth:'400px', margin:'60px auto', padding:'0 16px'}}>
       <div style={{background:'white', border:'1px solid #f1f5f9', borderRadius:'16px', padding:'24px', textAlign:'center'}}>
