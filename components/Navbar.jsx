@@ -2,12 +2,17 @@
 import Link from 'next/link';
 import { useCartStore } from '@/store/cartStore';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function Navbar() {
   const totalItems = useCartStore(s => s.totalItems());
   const router = useRouter();
   const [query, setQuery] = useState('');
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   function handleSearch(e) {
     e.preventDefault();
@@ -40,7 +45,7 @@ export default function Navbar() {
       <div style={{marginLeft:'auto', display:'flex', alignItems:'center', gap:'8px'}}>
         <Link href="/cart" style={{position:'relative', padding:'8px', textDecoration:'none', fontSize:'20px'}}>
           🛒
-          {totalItems > 0 && (
+          {isMounted && totalItems > 0 && (
             <span style={{position:'absolute', top:0, right:0, background:'#3b82f6', color:'white', fontSize:'10px', width:'16px', height:'16px', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:'600'}}>
               {totalItems}
             </span>
