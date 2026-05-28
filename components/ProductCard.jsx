@@ -20,9 +20,18 @@ export default function ProductCard({ product, onClick }) {
   return (
     <div onClick={() => onClick(product)}
       style={{background:'white', border:'1px solid #f1f5f9', borderRadius:'16px', overflow:'hidden', cursor:'pointer'}}>
-      <div style={{height:'120px', display:'flex', alignItems:'center', justifyContent:'center', background:'#f8fafc', fontSize:'48px'}}>
-        {product.emoji}
-      </div>
+      <div style={{height:'140px', display:'flex', alignItems:'center', justifyContent:'center', background:'#f8fafc', overflow:'hidden'}}>
+  {product.images && product.images.length > 0 ? (
+    <img
+      src={product.images[0]}
+      alt={product.name}
+      style={{width:'100%', height:'100%', objectFit:'contain', padding:'8px'}}
+      onError={(e) => { e.target.style.display='none'; }}
+    />
+  ) : (
+    <span style={{fontSize:'48px'}}>{product.emoji}</span>
+  )}
+</div>
       <div style={{padding:'12px'}}>
         {product.badge && (
           <span style={{display:'inline-block', background:'#fee2e2', color:'#991b1b', fontSize:'11px', padding:'2px 8px', borderRadius:'4px', marginBottom:'6px', fontWeight:'500'}}>

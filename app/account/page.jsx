@@ -4,20 +4,21 @@ import { useRouter } from 'next/navigation';
 import { useCartStore } from '@/store/cartStore';
 
 export default function AccountPage() {
-  
   const router = useRouter();
+  const rehydrate = useCartStore(s => s.rehydrate);
   const [mode, setMode] = useState('login');
   const [form, setForm] = useState({ name:'', email:'', password:'' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [user, setUser] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const u = localStorage.getItem('user');
-      return u ? JSON.parse(u) : null;
-    }
-    return null;
-  });
+  const [user, setUser] = useState(null);
+  const [isMounted, setIsMounted] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
+  useEffect(() => {
+    setIsMounted(true);
+    const u = localStorage.getItem('user');
+    if (u) setUser(JSON.parse(u));
+  }, []);
 
   async function handleSubmit() {
     setError('');
@@ -34,12 +35,11 @@ export default function AccountPage() {
         body: JSON.stringify(body)
       });
       const data = await res.json();
-
       if (!res.ok) { setError(data.error || 'Có lỗi xảy ra'); return; }
-
       localStorage.setItem('user', JSON.stringify(data));
       setUser(data);
-      window.location.reload();
+      rehydrate();
+      router.push('/');
     } catch {
       setError('Không thể kết nối server');
     } finally {
@@ -48,10 +48,14 @@ export default function AccountPage() {
   }
 
   function handleLogout() {
-  localStorage.removeItem('user');
-  setUser(null);
-  window.location.reload();
-}
+    localStorage.removeItem('user');
+    setUser(null);
+    rehydrate();
+    router.push('/');
+  }
+
+  if (!isMounted) return null;
+
   if (user) return (
     <main style={{maxWidth:'400px', margin:'60px auto', padding:'0 16px'}}>
       <div style={{background:'white', border:'1px solid #f1f5f9', borderRadius:'16px', padding:'24px', textAlign:'center'}}>
@@ -105,11 +109,19 @@ export default function AccountPage() {
         </div>
 
         <div style={{marginBottom:'20px'}}>
-          <label style={{fontSize:'12px', color:'#64748b', display:'block', marginBottom:'6px'}}>Mật khẩu</label>
-          <input value={form.password} onChange={e => setForm({...form, password:e.target.value})}
-            placeholder="••••••••" type="password"
-            style={{width:'100%', height:'40px', padding:'0 12px', border:'1px solid #e2e8f0', borderRadius:'10px', fontSize:'13px', outline:'none', boxSizing:'border-box'}} />
-        </div>
+  <label style={{fontSize:'12px', color:'#64748b', display:'block', marginBottom:'6px'}}>Mật khẩu</label>
+  <div style={{position:'relative'}}>
+    <input value={form.password} onChange={e => setForm({...form, password:e.target.value})}
+      placeholder="••••••••" type={showPassword ? 'text' : 'password'}
+      style={{width:'100%', height:'40px', padding:'0 40px 0 12px', border:'1px solid #e2e8f0', borderRadius:'10px', fontSize:'13px', outline:'none', boxSizing:'border-box'}} />
+    <button
+      type="button"
+      onClick={() => setShowPassword(!showPassword)}
+      style={{position:'absolute', right:'10px', top:'50%', transform:'translateY(-50%)', background:'none', border:'none', cursor:'pointer', fontSize:'16px', color:'#94a3b8', padding:'0'}}>
+      {showPassword ? '🙈' : '👁️'}
+    </button>
+  </div>
+</div>
 
         {error && (
           <p style={{fontSize:'13px', color:'#ef4444', marginBottom:'12px', padding:'8px 12px', background:'#fee2e2', borderRadius:'8px'}}>

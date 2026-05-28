@@ -28,7 +28,7 @@ function HomeContent() {
     <main>
       <div style={{background:'#3b82f6', color:'white', padding:'2.5rem 1rem', textAlign:'center'}}>
         <h1 style={{fontSize:'22px', fontWeight:'600', marginBottom:'8px'}}>
-          📱 Công nghệ đỉnh cao, giá tốt nhất
+           Công nghệ đỉnh cao, giá tốt nhất
         </h1>
         <p style={{fontSize:'14px', opacity:'0.85', marginBottom:'20px'}}>
           Laptop, điện thoại, phụ kiện chính hãng — giao hàng toàn quốc

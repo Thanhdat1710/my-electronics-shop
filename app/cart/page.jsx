@@ -9,10 +9,13 @@ export default function CartPage() {
   const [products, setProducts] = useState([]);
 
   useEffect(() => {
-    fetch('/api/products')
-      .then(res => res.json())
-      .then(data => setProducts(data));
-  }, []);
+  fetch('/api/products')
+    .then(res => res.json())
+    .then(data => {
+      if (Array.isArray(data)) setProducts(data);
+    })
+    .catch(err => console.error(err));
+}, []);
 
   const cartItems = Object.entries(items).map(([id, qty]) => ({
     product: products.find(p => p.id == id),
@@ -42,11 +45,21 @@ export default function CartPage() {
       <div style={{display:'flex', flexDirection:'column', gap:'10px', marginBottom:'16px'}}>
         {cartItems.map(({product, qty}) => (
           <div key={product.id} style={{background:'white', border:'1px solid #f1f5f9', borderRadius:'16px', padding:'14px', display:'flex', gap:'12px', alignItems:'center'}}>
-            <div style={{width:'56px', height:'56px', background:'#f8fafc', borderRadius:'12px', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'28px', flexShrink:0}}>
-              {product.emoji}
-            </div>
+            <div style={{width:'56px', height:'56px', background:'#f8fafc', borderRadius:'12px', overflow:'hidden', flexShrink:0}}>
+  {product.images && product.images.length > 0 ? (
+    <img src={product.images[0]} alt={product.name}
+      style={{width:'100%', height:'100%', objectFit:'cover'}} />
+  ) : (
+    <div style={{width:'100%', height:'100%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'28px'}}>
+      {product.emoji}
+    </div>
+  )}
+</div>
             <div style={{flex:1, minWidth:0}}>
-              <p style={{fontSize:'13px', fontWeight:'500', color:'#1e293b', marginBottom:'4px'}}>{product.name}</p>
+              <p onClick={() => router.push(`/products/${product.id}`)}
+                style={{fontSize:'13px', fontWeight:'500', color:'#1e293b', marginBottom:'4px', cursor:'pointer'}}>
+                {product.name}
+              </p>  
               <p style={{fontSize:'13px', color:'#3b82f6', fontWeight:'600'}}>{product.price.toLocaleString('vi-VN')}đ</p>
               <div style={{display:'flex', alignItems:'center', gap:'8px', marginTop:'6px'}}>
                 <button onClick={() => changeQty(product.id, -1)}

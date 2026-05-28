@@ -1,6 +1,12 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+function getCartKey() {
+  if (typeof window === 'undefined') return 'cart-guest';
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  return user.id ? `cart-${user.id}` : 'cart-guest';
+}
+
 export const useCartStore = create(
   persist(
     (set, get) => ({
@@ -26,6 +32,12 @@ export const useCartStore = create(
           return { items: { ...state.items, [id]: qty } };
         }),
       clearCart: () => set({ items: {} }),
+      rehydrate: () => {
+        const key = getCartKey();
+        const stored = localStorage.getItem(key);
+        const data = stored ? JSON.parse(stored) : { state: { items: {} } };
+        set({ items: data.state?.items || {} });
+      },
       totalItems: () => Object.values(get().items).reduce((a, b) => a + b, 0),
       totalPrice: (products) =>
         Object.entries(get().items).reduce((sum, [id, qty]) => {
@@ -38,21 +50,18 @@ export const useCartStore = create(
       storage: {
         getItem: (name) => {
           if (typeof window === 'undefined') return null;
-          const user = JSON.parse(localStorage.getItem('user') || '{}');
-          const key = user.id ? `cart-${user.id}` : 'cart-guest';
+          const key = getCartKey();
           const value = localStorage.getItem(key);
           return value ? JSON.parse(value) : null;
         },
         setItem: (name, value) => {
           if (typeof window === 'undefined') return;
-          const user = JSON.parse(localStorage.getItem('user') || '{}');
-          const key = user.id ? `cart-${user.id}` : 'cart-guest';
+          const key = getCartKey();
           localStorage.setItem(key, JSON.stringify(value));
         },
         removeItem: (name) => {
           if (typeof window === 'undefined') return;
-          const user = JSON.parse(localStorage.getItem('user') || '{}');
-          const key = user.id ? `cart-${user.id}` : 'cart-guest';
+          const key = getCartKey();
           localStorage.removeItem(key);
         },
       }

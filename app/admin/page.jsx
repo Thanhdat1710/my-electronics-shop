@@ -9,7 +9,11 @@ export default function AdminPage() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name:'', description:'', price:'', oldPrice:'', category:'laptop', emoji:'💻', badge:'', stock:'' });
+  const [editProduct, setEditProduct] = useState(null);
+  const [form, setForm] = useState({
+    name:'', description:'', price:'', oldPrice:'',
+    category:'laptop', emoji:'💻', badge:'', stock:'', images:''
+  });
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -21,26 +25,57 @@ export default function AdminPage() {
     setLoading(true);
     const [p, o] = await Promise.all([
       fetch('/api/products').then(r => r.json()),
-      fetch('/api/admin/orders').then(r => r.json()),
+      fetch('/api/admin/orders').then(r => r.json()).catch(() => []),
     ]);
-    setProducts(p);
-    setOrders(o);
+    setProducts(Array.isArray(p) ? p : []);
+    setOrders(Array.isArray(o) ? o : []);
     setLoading(false);
   }
 
-  async function addProduct() {
-    await fetch('/api/admin/products', {
-      method: 'POST',
+  function openAdd() {
+    setEditProduct(null);
+    setForm({ name:'', description:'', price:'', oldPrice:'', category:'laptop', emoji:'💻', badge:'', stock:'', images:'' });
+    setShowForm(true);
+  }
+
+  function openEdit(p) {
+    setEditProduct(p);
+    setForm({
+      name: p.name,
+      description: p.description,
+      price: p.price,
+      oldPrice: p.oldPrice || '',
+      category: p.category,
+      emoji: p.emoji,
+      badge: p.badge || '',
+      stock: p.stock,
+      images: Array.isArray(p.images) ? p.images.join('\n') : ''
+    });
+    setShowForm(true);
+  }
+
+  async function saveProduct() {
+    const data = {
+      name: form.name,
+      description: form.description,
+      price: parseFloat(form.price),
+      oldPrice: form.oldPrice ? parseFloat(form.oldPrice) : null,
+      category: form.category,
+      emoji: form.emoji,
+      badge: form.badge || null,
+      stock: parseInt(form.stock),
+      images: form.images.split('\n').map(s => s.trim()).filter(Boolean),
+    };
+
+    const url = editProduct ? `/api/admin/products/${editProduct.id}` : '/api/admin/products';
+    const method = editProduct ? 'PUT' : 'POST';
+
+    await fetch(url, {
+      method,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ...form,
-        price: parseFloat(form.price),
-        oldPrice: form.oldPrice ? parseFloat(form.oldPrice) : null,
-        stock: parseInt(form.stock)
-      })
+      body: JSON.stringify(data)
     });
     setShowForm(false);
-    setForm({ name:'', description:'', price:'', oldPrice:'', category:'laptop', emoji:'💻', badge:'', stock:'' });
     loadData();
   }
 
@@ -65,7 +100,7 @@ export default function AdminPage() {
   if (loading) return <p style={{textAlign:'center', padding:'40px', color:'#94a3b8'}}>Đang tải...</p>;
 
   return (
-    <main style={{maxWidth:'900px', margin:'0 auto', padding:'20px 16px'}}>
+    <main style={{maxWidth:'1000px', margin:'0 auto', padding:'20px 16px'}}>
       <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'20px'}}>
         <h1 style={{fontSize:'20px', fontWeight:'600', color:'#1e293b'}}>⚙️ Trang Admin</h1>
         <button onClick={() => router.push('/')}
@@ -92,25 +127,28 @@ export default function AdminPage() {
 
       {/* Tabs */}
       <div style={{display:'flex', gap:'8px', marginBottom:'16px'}}>
-        {['products','orders'].map(t => (
+        {[['products','📦 Sản phẩm'],['orders','🛒 Đơn hàng']].map(([t, label]) => (
           <button key={t} onClick={() => setTab(t)}
-            style={{padding:'8px 20px', borderRadius:'10px', border:'none', cursor:'pointer', fontSize:'13px', fontWeight:'500', background: tab===t ? '#3b82f6' : 'white', color: tab===t ? 'white' : '#64748b', border: tab===t ? 'none' : '1px solid #e2e8f0'}}>
-            {t === 'products' ? '📦 Sản phẩm' : '🛒 Đơn hàng'}
+            style={{padding:'8px 20px', borderRadius:'10px', border: tab===t ? 'none' : '1px solid #e2e8f0', cursor:'pointer', fontSize:'13px', fontWeight:'500', background: tab===t ? '#3b82f6' : 'white', color: tab===t ? 'white' : '#64748b'}}>
+            {label}
           </button>
         ))}
       </div>
 
-      {/* Sản phẩm */}
+      {/* Tab Sản phẩm */}
       {tab === 'products' && (
         <div>
-          <button onClick={() => setShowForm(!showForm)}
+          <button onClick={openAdd}
             style={{marginBottom:'12px', padding:'8px 16px', background:'#3b82f6', color:'white', borderRadius:'10px', border:'none', cursor:'pointer', fontSize:'13px', fontWeight:'500'}}>
             + Thêm sản phẩm
           </button>
 
+          {/* Form thêm/sửa */}
           {showForm && (
             <div style={{background:'white', border:'1px solid #f1f5f9', borderRadius:'16px', padding:'16px', marginBottom:'16px'}}>
-              <h3 style={{fontSize:'14px', fontWeight:'600', marginBottom:'14px'}}>Thêm sản phẩm mới</h3>
+              <h3 style={{fontSize:'14px', fontWeight:'600', marginBottom:'14px', color:'#1e293b'}}>
+                {editProduct ? '✏️ Sửa sản phẩm' : '+ Thêm sản phẩm mới'}
+              </h3>
               <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'10px'}}>
                 {[
                   { key:'name', label:'Tên sản phẩm', placeholder:'MacBook Air M3' },
@@ -128,12 +166,14 @@ export default function AdminPage() {
                   </div>
                 ))}
               </div>
+
               <div style={{marginTop:'10px'}}>
                 <label style={{fontSize:'12px', color:'#64748b', display:'block', marginBottom:'4px'}}>Mô tả</label>
                 <input value={form.description} onChange={e => setForm({...form, description: e.target.value})}
                   placeholder="Mô tả sản phẩm..."
                   style={{width:'100%', height:'36px', padding:'0 10px', border:'1px solid #e2e8f0', borderRadius:'8px', fontSize:'13px', outline:'none', boxSizing:'border-box'}} />
               </div>
+
               <div style={{marginTop:'10px'}}>
                 <label style={{fontSize:'12px', color:'#64748b', display:'block', marginBottom:'4px'}}>Danh mục</label>
                 <select value={form.category} onChange={e => setForm({...form, category: e.target.value})}
@@ -145,10 +185,21 @@ export default function AdminPage() {
                   <option value="accessory">Phụ kiện</option>
                 </select>
               </div>
+
+              <div style={{marginTop:'10px'}}>
+                <label style={{fontSize:'12px', color:'#64748b', display:'block', marginBottom:'4px'}}>
+                  Link ảnh (mỗi link 1 dòng)
+                </label>
+                <textarea value={form.images} onChange={e => setForm({...form, images: e.target.value})}
+                  placeholder="https://images.unsplash.com/...&#10;https://images.unsplash.com/...&#10;https://images.unsplash.com/..."
+                  rows={4}
+                  style={{width:'100%', padding:'8px 10px', border:'1px solid #e2e8f0', borderRadius:'8px', fontSize:'13px', outline:'none', boxSizing:'border-box', resize:'vertical'}} />
+              </div>
+
               <div style={{display:'flex', gap:'8px', marginTop:'14px'}}>
-                <button onClick={addProduct}
+                <button onClick={saveProduct}
                   style={{padding:'8px 20px', background:'#3b82f6', color:'white', borderRadius:'10px', border:'none', cursor:'pointer', fontSize:'13px', fontWeight:'500'}}>
-                  Lưu
+                  {editProduct ? 'Cập nhật' : 'Lưu'}
                 </button>
                 <button onClick={() => setShowForm(false)}
                   style={{padding:'8px 20px', background:'#f1f5f9', color:'#64748b', borderRadius:'10px', border:'none', cursor:'pointer', fontSize:'13px'}}>
@@ -158,25 +209,38 @@ export default function AdminPage() {
             </div>
           )}
 
+          {/* Danh sách sản phẩm */}
           <div style={{display:'flex', flexDirection:'column', gap:'8px'}}>
             {products.map(p => (
               <div key={p.id} style={{background:'white', border:'1px solid #f1f5f9', borderRadius:'14px', padding:'14px', display:'flex', alignItems:'center', gap:'12px'}}>
-                <span style={{fontSize:'28px'}}>{p.emoji}</span>
+                <div style={{width:'48px', height:'48px', background:'#f8fafc', borderRadius:'10px', overflow:'hidden', flexShrink:0}}>
+                  {p.images && p.images.length > 0 ? (
+                    <img src={p.images[0]} alt={p.name} style={{width:'100%', height:'100%', objectFit:'contain', padding:'4px'}} />
+                  ) : (
+                    <div style={{width:'100%', height:'100%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'24px'}}>{p.emoji}</div>
+                  )}
+                </div>
                 <div style={{flex:1}}>
                   <p style={{fontSize:'13px', fontWeight:'500', color:'#1e293b'}}>{p.name}</p>
                   <p style={{fontSize:'12px', color:'#94a3b8'}}>{p.category} • Tồn: {p.stock} • {p.price.toLocaleString('vi-VN')}đ</p>
                 </div>
-                <button onClick={() => deleteProduct(p.id)}
-                  style={{padding:'6px 12px', background:'#fee2e2', color:'#ef4444', borderRadius:'8px', border:'none', cursor:'pointer', fontSize:'12px'}}>
-                  Xóa
-                </button>
+                <div style={{display:'flex', gap:'6px'}}>
+                  <button onClick={() => openEdit(p)}
+                    style={{padding:'6px 12px', background:'#eff6ff', color:'#3b82f6', borderRadius:'8px', border:'none', cursor:'pointer', fontSize:'12px', fontWeight:'500'}}>
+                    ✏️ Sửa
+                  </button>
+                  <button onClick={() => deleteProduct(p.id)}
+                    style={{padding:'6px 12px', background:'#fee2e2', color:'#ef4444', borderRadius:'8px', border:'none', cursor:'pointer', fontSize:'12px', fontWeight:'500'}}>
+                    🗑️ Xóa
+                  </button>
+                </div>
               </div>
             ))}
           </div>
         </div>
       )}
 
-      {/* Đơn hàng */}
+      {/* Tab Đơn hàng */}
       {tab === 'orders' && (
         <div style={{display:'flex', flexDirection:'column', gap:'10px'}}>
           {orders.length === 0 && <p style={{color:'#94a3b8', textAlign:'center', padding:'40px'}}>Chưa có đơn hàng nào</p>}
