@@ -6,7 +6,6 @@ import { useCartStore } from '@/store/cartStore';
 export default function CheckoutPage() {
   const router = useRouter();
   const { items, clearCart } = useCartStore();
-  const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [form, setForm] = useState({ name:'', phone:'', address:'', note:'' });
@@ -16,13 +15,11 @@ export default function CheckoutPage() {
   useEffect(() => {
     const u = localStorage.getItem('user');
     if (u) setUser(JSON.parse(u));
-    fetch('/api/products')
-      .then(res => res.json())
-      .then(data => setProducts(data));
   }, []);
 
-  const cartItems = Object.entries(items).map(([id, qty]) => ({
-    product: products.find(p => p.id == id), qty
+  const cartItems = Object.entries(items).map(([id, item]) => ({
+    product: item.product,
+    qty: item.qty
   })).filter(x => x.product);
 
   const subtotal = cartItems.reduce((sum, {product, qty}) => sum + product.price * qty, 0);

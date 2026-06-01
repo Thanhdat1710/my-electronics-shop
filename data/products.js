@@ -34,8 +34,17 @@ export const PRODUCTS = [
 export const CATEGORIES = [
   { value:'all', label:'Tất cả' },
   { value:'laptop', label:'💻 Laptop' },
+  { value:'pc', label:'🖥️ PC' },
+  { value:'monitor', label:'🖥️ Màn hình' },
   { value:'phone', label:'📱 Điện thoại' },
   { value:'tablet', label:'📟 Máy tính bảng' },
   { value:'audio', label:'🎧 Âm thanh' },
-  { value:'accessory', label:'⌚ Phụ kiện' },
+  { value:'accessory', label:'⌚ Đồng hồ' },
+  { value:'peripheral', label:'🔌 Phụ kiện' },
+  { value:'mouse', label:'🖱️ Chuột' },
+  { value:'camera', label:'📷 Camera' },
+  { value:'gaming', label:'🎮 Gaming' },
+  { value:'network', label:'📡 Mạng/Router' },
+  { value:'printer', label:'🖨️ Máy in' },
+  { value:'storage', label:'💾 Ổ cứng' },
 ];

@@ -9,9 +9,19 @@ export default function Navbar() {
   const router = useRouter();
   const [query, setQuery] = useState('');
   const [isMounted, setIsMounted] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    setIsAdmin(user.role === 'admin');
+    // Lắng nghe thay đổi khi đăng nhập/đăng xuất
+  const handleStorage = () => {
+    const u = JSON.parse(localStorage.getItem('user') || '{}');
+    setIsAdmin(u.role === 'admin');
+  };
+  window.addEventListener('storage', handleStorage);
+  return () => window.removeEventListener('storage', handleStorage);
   }, []);
 
   function handleSearch(e) {
@@ -43,6 +53,12 @@ export default function Navbar() {
       </form>
 
       <div style={{marginLeft:'auto', display:'flex', alignItems:'center', gap:'8px'}}>
+        {isMounted && isAdmin && (
+          <Link href="/admin"
+            style={{padding:'6px 12px', background:'#fef3c7', color:'#92400e', borderRadius:'8px', textDecoration:'none', fontSize:'12px', fontWeight:'500'}}>
+            ⚙️ Admin
+          </Link>
+        )}
         <Link href="/cart" style={{position:'relative', padding:'8px', textDecoration:'none', fontSize:'20px'}}>
           🛒
           {isMounted && totalItems > 0 && (

@@ -12,9 +12,18 @@ export const useCartStore = create(
     (set, get) => ({
       items: {},
       addItem: (product) =>
-        set(state => ({
-          items: { ...state.items, [product.id]: (state.items[product.id] || 0) + 1 }
-        })),
+        set(state => {
+          const existing = state.items[product.id] || { qty: 0, product };
+          return {
+            items: {
+              ...state.items,
+              [product.id]: {
+                qty: existing.qty + 1,
+                product
+              }
+            }
+          };
+        }),
       removeItem: (id) =>
         set(state => {
           const items = { ...state.items };
@@ -23,13 +32,20 @@ export const useCartStore = create(
         }),
       changeQty: (id, delta) =>
         set(state => {
-          const qty = (state.items[id] || 0) + delta;
+          const existing = state.items[id];
+          if (!existing) return state;
+          const qty = existing.qty + delta;
           if (qty <= 0) {
             const items = { ...state.items };
             delete items[id];
             return { items };
           }
-          return { items: { ...state.items, [id]: qty } };
+          return {
+            items: {
+              ...state.items,
+              [id]: { ...existing, qty }
+            }
+          };
         }),
       clearCart: () => set({ items: {} }),
       rehydrate: () => {
@@ -38,12 +54,9 @@ export const useCartStore = create(
         const data = stored ? JSON.parse(stored) : { state: { items: {} } };
         set({ items: data.state?.items || {} });
       },
-      totalItems: () => Object.values(get().items).reduce((a, b) => a + b, 0),
-      totalPrice: (products) =>
-        Object.entries(get().items).reduce((sum, [id, qty]) => {
-          const p = products.find(x => x.id == id);
-          return sum + (p ? p.price * qty : 0);
-        }, 0),
+      totalItems: () => Object.values(get().items).reduce((sum, item) => sum + (item.qty || 0), 0),
+      totalPrice: () =>
+        Object.values(get().items).reduce((sum, item) => sum + (item.product?.price || 0) * item.qty, 0),
     }),
     {
       name: 'cart-guest',
@@ -51,13 +64,12 @@ export const useCartStore = create(
         getItem: (name) => {
           if (typeof window === 'undefined') return null;
           const key = getCartKey();
-          const value = localStorage.getItem(key);
-          return value ? JSON.parse(value) : null;
+          return localStorage.getItem(key);
         },
         setItem: (name, value) => {
           if (typeof window === 'undefined') return;
           const key = getCartKey();
-          localStorage.setItem(key, JSON.stringify(value));
+          localStorage.setItem(key, value);
         },
         removeItem: (name) => {
           if (typeof window === 'undefined') return;

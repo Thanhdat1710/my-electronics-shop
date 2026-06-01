@@ -65,6 +65,12 @@ export default function AccountPage() {
         <h2 style={{fontSize:'18px', fontWeight:'600', color:'#1e293b', marginBottom:'4px'}}>{user.name}</h2>
         <p style={{fontSize:'13px', color:'#94a3b8', marginBottom:'24px'}}>{user.email}</p>
         <div style={{display:'flex', flexDirection:'column', gap:'10px'}}>
+          {user.role === 'admin' && (
+    <button onClick={() => router.push('/admin')}
+      style={{padding:'10px', background:'#fef3c7', color:'#92400e', border:'none', borderRadius:'12px', cursor:'pointer', fontSize:'13px', fontWeight:'500'}}>
+      ⚙️ Trang quản trị Admin
+    </button>
+    )}
           <button onClick={() => router.push('/cart')}
             style={{padding:'10px', background:'#eff6ff', color:'#3b82f6', border:'none', borderRadius:'12px', cursor:'pointer', fontSize:'13px', fontWeight:'500'}}>
             🛒 Xem giỏ hàng

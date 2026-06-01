@@ -1,25 +1,14 @@
 'use client';
 import { useRouter } from 'next/navigation';
 import { useCartStore } from '@/store/cartStore';
-import { useState, useEffect } from 'react';
 
 export default function CartPage() {
   const router = useRouter();
-  const { items, changeQty, removeItem, totalPrice } = useCartStore();
-  const [products, setProducts] = useState([]);
+  const { items, changeQty, removeItem } = useCartStore();
 
-  useEffect(() => {
-  fetch('/api/products')
-    .then(res => res.json())
-    .then(data => {
-      if (Array.isArray(data)) setProducts(data);
-    })
-    .catch(err => console.error(err));
-}, []);
-
-  const cartItems = Object.entries(items).map(([id, qty]) => ({
-    product: products.find(p => p.id == id),
-    qty
+  const cartItems = Object.entries(items).map(([id, item]) => ({
+    product: item.product,
+    qty: item.qty
   })).filter(x => x.product);
 
   if (!Object.keys(items).length) return (

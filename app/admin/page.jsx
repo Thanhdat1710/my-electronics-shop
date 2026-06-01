@@ -12,7 +12,7 @@ export default function AdminPage() {
   const [editProduct, setEditProduct] = useState(null);
   const [form, setForm] = useState({
     name:'', description:'', price:'', oldPrice:'',
-    category:'laptop', emoji:'💻', badge:'', stock:'', images:''
+    category:'laptop', emoji:'💻', badge:'', stock:'', images:'',specs:''
   });
 
   useEffect(() => {
@@ -22,23 +22,29 @@ export default function AdminPage() {
   }, []);
 
   async function loadData() {
-    setLoading(true);
+  setLoading(true);
+  try {
     const [p, o] = await Promise.all([
-      fetch('/api/products').then(r => r.json()),
+      fetch('/api/products').then(r => r.json()).catch(() => []),
       fetch('/api/admin/orders').then(r => r.json()).catch(() => []),
     ]);
     setProducts(Array.isArray(p) ? p : []);
     setOrders(Array.isArray(o) ? o : []);
-    setLoading(false);
+  } catch {
+    setProducts([]);
+    setOrders([]);
   }
+  setLoading(false);
+}
 
   function openAdd() {
     setEditProduct(null);
-    setForm({ name:'', description:'', price:'', oldPrice:'', category:'laptop', emoji:'💻', badge:'', stock:'', images:'' });
+    setForm({ name:'', description:'', price:'', oldPrice:'', category:'laptop', emoji:'💻', badge:'', stock:'', images:'', specs:'' });
     setShowForm(true);
   }
 
   function openEdit(p) {
+    
     setEditProduct(p);
     setForm({
       name: p.name,
@@ -49,35 +55,46 @@ export default function AdminPage() {
       emoji: p.emoji,
       badge: p.badge || '',
       stock: p.stock,
-      images: Array.isArray(p.images) ? p.images.join('\n') : ''
+      images: Array.isArray(p.images) ? p.images.join('\n') : '',
+      specs: p.specs ? (Array.isArray(p.specs) ? p.specs : JSON.parse(p.specs || '[]')).map(([k,v]) => `${k}: ${v}`).join('\n') : ''
+      
     });
     setShowForm(true);
   }
 
   async function saveProduct() {
-    const data = {
-      name: form.name,
-      description: form.description,
-      price: parseFloat(form.price),
-      oldPrice: form.oldPrice ? parseFloat(form.oldPrice) : null,
-      category: form.category,
-      emoji: form.emoji,
-      badge: form.badge || null,
-      stock: parseInt(form.stock),
-      images: form.images.split('\n').map(s => s.trim()).filter(Boolean),
-    };
+  const data = {
+    name: form.name,
+    description: form.description,
+    price: parseFloat(form.price),
+    oldPrice: form.oldPrice ? parseFloat(form.oldPrice) : null,
+    category: form.category,
+    emoji: form.emoji,
+    badge: form.badge || null,
+    stock: parseInt(form.stock),
+    images: form.images.split('\n').map(s => s.trim()).filter(Boolean),
+    specs: JSON.stringify(
+      form.specs.split('\n')
+        .map(line => line.trim())
+        .filter(line => line.includes(':'))
+        .map(line => {
+          const idx = line.indexOf(':');
+          return [line.slice(0, idx).trim(), line.slice(idx + 1).trim()];
+        })
+    ),
+  };
 
-    const url = editProduct ? `/api/admin/products/${editProduct.id}` : '/api/admin/products';
-    const method = editProduct ? 'PUT' : 'POST';
+  const url = editProduct ? `/api/admin/products/${editProduct.id}` : '/api/admin/products';
+  const method = editProduct ? 'PUT' : 'POST';
 
-    await fetch(url, {
-      method,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
-    setShowForm(false);
-    loadData();
-  }
+  await fetch(url, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  });
+  setShowForm(false);
+  loadData();
+}
 
   async function deleteProduct(id) {
     if (!confirm('Xóa sản phẩm này?')) return;
@@ -150,41 +167,81 @@ export default function AdminPage() {
                 {editProduct ? '✏️ Sửa sản phẩm' : '+ Thêm sản phẩm mới'}
               </h3>
               <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'10px'}}>
-                {[
-                  { key:'name', label:'Tên sản phẩm', placeholder:'MacBook Air M3' },
-                  { key:'emoji', label:'Emoji', placeholder:'💻' },
-                  { key:'price', label:'Giá (VNĐ)', placeholder:'28990000' },
-                  { key:'oldPrice', label:'Giá cũ (tuỳ chọn)', placeholder:'32000000' },
-                  { key:'stock', label:'Tồn kho', placeholder:'50' },
-                  { key:'badge', label:'Badge (tuỳ chọn)', placeholder:'-9%' },
-                ].map(f => (
-                  <div key={f.key}>
-                    <label style={{fontSize:'12px', color:'#64748b', display:'block', marginBottom:'4px'}}>{f.label}</label>
-                    <input value={form[f.key]} onChange={e => setForm({...form, [f.key]: e.target.value})}
-                      placeholder={f.placeholder}
-                      style={{width:'100%', height:'36px', padding:'0 10px', border:'1px solid #e2e8f0', borderRadius:'8px', fontSize:'13px', outline:'none', boxSizing:'border-box'}} />
-                  </div>
-                ))}
-              </div>
+  {[
+    { key:'name', label:'Tên sản phẩm', placeholder:'MacBook Air M3' },
+    { key:'price', label:'Giá (VNĐ)', placeholder:'28990000' },
+    { key:'oldPrice', label:'Giá cũ (tuỳ chọn)', placeholder:'32000000' },
+    { key:'stock', label:'Tồn kho', placeholder:'50' },
+    { key:'badge', label:'Badge (tuỳ chọn)', placeholder:'-9%' },
+  ].map(f => (
+    <div key={f.key}>
+      <label style={{fontSize:'12px', color:'#64748b', display:'block', marginBottom:'4px'}}>{f.label}</label>
+      <input value={form[f.key]} onChange={e => setForm({...form, [f.key]: e.target.value})}
+        placeholder={f.placeholder}
+        style={{width:'100%', height:'36px', padding:'0 10px', border:'1px solid #e2e8f0', borderRadius:'8px', fontSize:'13px', outline:'none', boxSizing:'border-box'}} />
+    </div>
+  ))}
+</div>
 
-              <div style={{marginTop:'10px'}}>
-                <label style={{fontSize:'12px', color:'#64748b', display:'block', marginBottom:'4px'}}>Mô tả</label>
-                <input value={form.description} onChange={e => setForm({...form, description: e.target.value})}
-                  placeholder="Mô tả sản phẩm..."
-                  style={{width:'100%', height:'36px', padding:'0 10px', border:'1px solid #e2e8f0', borderRadius:'8px', fontSize:'13px', outline:'none', boxSizing:'border-box'}} />
-              </div>
+{/* Mô tả */}
+<div style={{marginTop:'10px'}}>
+  <label style={{fontSize:'12px', color:'#64748b', display:'block', marginBottom:'4px'}}>Mô tả sản phẩm</label>
+  <textarea value={form.description} onChange={e => setForm({...form, description: e.target.value})}
+    placeholder="Nhập mô tả chi tiết về sản phẩm..."
+    rows={4}
+    style={{width:'100%', padding:'8px 10px', border:'1px solid #e2e8f0', borderRadius:'8px', fontSize:'13px', outline:'none', boxSizing:'border-box', resize:'vertical'}} />
+</div>
+              
 
-              <div style={{marginTop:'10px'}}>
-                <label style={{fontSize:'12px', color:'#64748b', display:'block', marginBottom:'4px'}}>Danh mục</label>
-                <select value={form.category} onChange={e => setForm({...form, category: e.target.value})}
-                  style={{width:'100%', height:'36px', padding:'0 10px', border:'1px solid #e2e8f0', borderRadius:'8px', fontSize:'13px', outline:'none'}}>
-                  <option value="laptop">Laptop</option>
-                  <option value="phone">Điện thoại</option>
-                  <option value="tablet">Máy tính bảng</option>
-                  <option value="audio">Âm thanh</option>
-                  <option value="accessory">Phụ kiện</option>
-                </select>
-              </div>
+              {/* Danh mục */}
+<div style={{marginTop:'10px'}}>
+  <label style={{fontSize:'12px', color:'#64748b', display:'block', marginBottom:'4px'}}>Danh mục</label>
+  <select value={form.category} onChange={e => setForm({...form, category: e.target.value})}
+    style={{width:'100%', height:'36px', padding:'0 10px', border:'1px solid #e2e8f0', borderRadius:'8px', fontSize:'13px', outline:'none'}}>
+    <option value="laptop">💻 Laptop</option>
+    <option value="pc">🔲 PC</option>
+    <option value="monitor">🖥️ Màn hình</option>
+    <option value="phone">📱 Điện thoại</option>
+    <option value="tablet">📟 Máy tính bảng</option>
+    <option value="audio">🎧 Âm thanh</option>
+    <option value="accessory">⌚ Đồng hồ</option>
+    <option value="peripheral">🔌 Phụ kiện</option>
+    <option value="camera">📷 Camera</option>
+    <option value="gaming">🎮 Gaming</option>
+    <option value="network">📡 Mạng/Router</option>
+    <option value="printer">🖨️ Máy in</option>
+    <option value="storage">💾 Ổ cứng</option>
+  </select>
+</div>
+
+{/* Emoji */}
+<div style={{marginTop:'10px'}}>
+  <label style={{fontSize:'12px', color:'#64748b', display:'block', marginBottom:'4px'}}>Emoji</label>
+  <div style={{display:'flex', gap:'8px', flexWrap:'wrap'}}>
+    {[
+      { emoji:'💻', label:'Laptop' },
+      { emoji:'🔲', label:'PC' },
+      { emoji:'🖥️', label:'Màn hình' },
+      { emoji:'📱', label:'Điện thoại' },
+      { emoji:'📟', label:'Tablet' },
+      { emoji:'🎧', label:'Tai nghe' },
+      { emoji:'⌚', label:'Đồng hồ' },
+      { emoji:'🔌', label:'Phụ kiện' },
+      { emoji:'📷', label:'Camera' },
+      { emoji:'🎮', label:'Gaming' },
+      { emoji:'📡', label:'Mạng' },
+      { emoji:'🖨️', label:'Máy in' },
+      { emoji:'💾', label:'Ổ cứng' },
+      { emoji:'📦', label:'Khác' },
+    ].map(({emoji, label}) => (
+      <button key={emoji} type="button"
+        onClick={() => setForm({...form, emoji})}
+        style={{padding:'6px 10px', borderRadius:'8px', border: form.emoji===emoji ? '2px solid #3b82f6' : '1px solid #e2e8f0', background: form.emoji===emoji ? '#eff6ff' : 'white', cursor:'pointer', fontSize:'13px', display:'flex', alignItems:'center', gap:'4px'}}>
+        {emoji} <span style={{fontSize:'11px', color:'#64748b'}}>{label}</span>
+      </button>
+    ))}
+  </div>
+</div>
 
               <div style={{marginTop:'10px'}}>
                 <label style={{fontSize:'12px', color:'#64748b', display:'block', marginBottom:'4px'}}>
@@ -195,7 +252,15 @@ export default function AdminPage() {
                   rows={4}
                   style={{width:'100%', padding:'8px 10px', border:'1px solid #e2e8f0', borderRadius:'8px', fontSize:'13px', outline:'none', boxSizing:'border-box', resize:'vertical'}} />
               </div>
-
+                <div style={{marginTop:'10px'}}>
+              <label style={{fontSize:'12px', color:'#64748b', display:'block', marginBottom:'4px'}}>
+                Thông số kỹ thuật (mỗi dòng: Tên: Giá trị)
+              </label>
+              <textarea value={form.specs} onChange={e => setForm({...form, specs: e.target.value})}
+                placeholder={'CPU: Apple S7\nMàn hình: 41mm Always-On\nPin: 18 giờ\nKháng nước: WR50'}
+                rows={6}
+                style={{width:'100%', padding:'8px 10px', border:'1px solid #e2e8f0', borderRadius:'8px', fontSize:'13px', outline:'none', boxSizing:'border-box', resize:'vertical'}} />
+              </div>
               <div style={{display:'flex', gap:'8px', marginTop:'14px'}}>
                 <button onClick={saveProduct}
                   style={{padding:'8px 20px', background:'#3b82f6', color:'white', borderRadius:'10px', border:'none', cursor:'pointer', fontSize:'13px', fontWeight:'500'}}>
