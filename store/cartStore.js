@@ -17,10 +17,7 @@ export const useCartStore = create(
           return {
             items: {
               ...state.items,
-              [product.id]: {
-                qty: existing.qty + 1,
-                product
-              }
+              [product.id]: { qty: existing.qty + 1, product }
             }
           };
         }),
@@ -41,35 +38,55 @@ export const useCartStore = create(
             return { items };
           }
           return {
-            items: {
-              ...state.items,
-              [id]: { ...existing, qty }
-            }
+            items: { ...state.items, [id]: { ...existing, qty } }
           };
         }),
       clearCart: () => set({ items: {} }),
+
       rehydrate: () => {
         const key = getCartKey();
         const stored = localStorage.getItem(key);
-        const data = stored ? JSON.parse(stored) : { state: { items: {} } };
-        set({ items: data.state?.items || {} });
+
+        if (!stored) {
+          set({ items: {} });
+          return;
+        }
+
+        try {
+          const parsed = JSON.parse(stored);
+          set({ items: parsed?.state?.items || {} });
+        } catch {
+          set({ items: {} });
+        }
       },
-      totalItems: () => Object.values(get().items).reduce((sum, item) => sum + (item.qty || 0), 0),
+
+      totalItems: () =>
+        Object.values(get().items).reduce((sum, item) => sum + (item.qty || 0), 0),
       totalPrice: () =>
-        Object.values(get().items).reduce((sum, item) => sum + (item.product?.price || 0) * item.qty, 0),
+        Object.values(get().items).reduce(
+          (sum, item) => sum + (item.product?.price || 0) * item.qty, 0
+        ),
     }),
     {
       name: 'cart-guest',
       storage: {
+        // ✅ Fix: parse JSON khi đọc ra
         getItem: (name) => {
           if (typeof window === 'undefined') return null;
           const key = getCartKey();
-          return localStorage.getItem(key);
+          const str = localStorage.getItem(key);
+          if (!str) return null;
+          try {
+            return JSON.parse(str); // trả về object cho Zustand
+          } catch {
+            return null;
+          }
         },
+        // ✅ Fix: stringify thành JSON trước khi lưu
         setItem: (name, value) => {
           if (typeof window === 'undefined') return;
           const key = getCartKey();
-          localStorage.setItem(key, value);
+          localStorage.setItem(key, JSON.stringify(value));
         },
         removeItem: (name) => {
           if (typeof window === 'undefined') return;
