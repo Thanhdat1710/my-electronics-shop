@@ -36,7 +36,9 @@ export default function AccountPage() {
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error || 'Có lỗi xảy ra'); return; }
+
       localStorage.setItem('user', JSON.stringify(data));
+      window.dispatchEvent(new Event('authChange')); // ← cập nhật Navbar ngay lập tức
       setUser(data);
       rehydrate();
       router.push('/');
@@ -49,6 +51,7 @@ export default function AccountPage() {
 
   function handleLogout() {
     localStorage.removeItem('user');
+    window.dispatchEvent(new Event('authChange')); // ← cập nhật Navbar ngay lập tức
     setUser(null);
     rehydrate();
     router.push('/');
@@ -66,11 +69,11 @@ export default function AccountPage() {
         <p style={{fontSize:'13px', color:'#94a3b8', marginBottom:'24px'}}>{user.email}</p>
         <div style={{display:'flex', flexDirection:'column', gap:'10px'}}>
           {user.role === 'admin' && (
-    <button onClick={() => router.push('/admin')}
-      style={{padding:'10px', background:'#fef3c7', color:'#92400e', border:'none', borderRadius:'12px', cursor:'pointer', fontSize:'13px', fontWeight:'500'}}>
-      ⚙️ Trang quản trị Admin
-    </button>
-    )}
+            <button onClick={() => router.push('/admin')}
+              style={{padding:'10px', background:'#fef3c7', color:'#92400e', border:'none', borderRadius:'12px', cursor:'pointer', fontSize:'13px', fontWeight:'500'}}>
+              ⚙️ Trang quản trị Admin
+            </button>
+          )}
           <button onClick={() => router.push('/cart')}
             style={{padding:'10px', background:'#eff6ff', color:'#3b82f6', border:'none', borderRadius:'12px', cursor:'pointer', fontSize:'13px', fontWeight:'500'}}>
             🛒 Xem giỏ hàng
@@ -115,19 +118,19 @@ export default function AccountPage() {
         </div>
 
         <div style={{marginBottom:'20px'}}>
-  <label style={{fontSize:'12px', color:'#64748b', display:'block', marginBottom:'6px'}}>Mật khẩu</label>
-  <div style={{position:'relative'}}>
-    <input value={form.password} onChange={e => setForm({...form, password:e.target.value})}
-      placeholder="••••••••" type={showPassword ? 'text' : 'password'}
-      style={{width:'100%', height:'40px', padding:'0 40px 0 12px', border:'1px solid #e2e8f0', borderRadius:'10px', fontSize:'13px', outline:'none', boxSizing:'border-box'}} />
-    <button
-      type="button"
-      onClick={() => setShowPassword(!showPassword)}
-      style={{position:'absolute', right:'10px', top:'50%', transform:'translateY(-50%)', background:'none', border:'none', cursor:'pointer', fontSize:'16px', color:'#94a3b8', padding:'0'}}>
-      {showPassword ? '🙈' : '👁️'}
-    </button>
-  </div>
-</div>
+          <label style={{fontSize:'12px', color:'#64748b', display:'block', marginBottom:'6px'}}>Mật khẩu</label>
+          <div style={{position:'relative'}}>
+            <input value={form.password} onChange={e => setForm({...form, password:e.target.value})}
+              placeholder="••••••••" type={showPassword ? 'text' : 'password'}
+              style={{width:'100%', height:'40px', padding:'0 40px 0 12px', border:'1px solid #e2e8f0', borderRadius:'10px', fontSize:'13px', outline:'none', boxSizing:'border-box'}} />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              style={{position:'absolute', right:'10px', top:'50%', transform:'translateY(-50%)', background:'none', border:'none', cursor:'pointer', fontSize:'16px', color:'#94a3b8', padding:'0'}}>
+              {showPassword ? '🙈' : '👁️'}
+            </button>
+          </div>
+        </div>
 
         {error && (
           <p style={{fontSize:'13px', color:'#ef4444', marginBottom:'12px', padding:'8px 12px', background:'#fee2e2', borderRadius:'8px'}}>

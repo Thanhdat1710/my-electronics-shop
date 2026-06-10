@@ -13,15 +13,23 @@ export default function Navbar() {
 
   useEffect(() => {
     setIsMounted(true);
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    setIsAdmin(user.role === 'admin');
-    // Lắng nghe thay đổi khi đăng nhập/đăng xuất
-  const handleStorage = () => {
-    const u = JSON.parse(localStorage.getItem('user') || '{}');
-    setIsAdmin(u.role === 'admin');
-  };
-  window.addEventListener('storage', handleStorage);
-  return () => window.removeEventListener('storage', handleStorage);
+
+    const syncAdmin = () => {
+      const u = JSON.parse(localStorage.getItem('user') || '{}');
+      setIsAdmin(u.role === 'admin');
+    };
+
+    syncAdmin(); // đọc lần đầu khi mount
+
+    // Lắng nghe login/logout từ chính tab này
+    window.addEventListener('authChange', syncAdmin);
+    // Lắng nghe từ tab khác
+    window.addEventListener('storage', syncAdmin);
+
+    return () => {
+      window.removeEventListener('authChange', syncAdmin);
+      window.removeEventListener('storage', syncAdmin);
+    };
   }, []);
 
   function handleSearch(e) {

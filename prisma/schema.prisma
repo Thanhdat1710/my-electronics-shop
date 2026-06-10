@@ -31,6 +31,7 @@ model Product {
   specs       String      @default("[]") // product specs
   createdAt   DateTime    @default(now())
   orderItems  OrderItem[]
+  variants  ProductVariant[]
 }
 
 model Order {
@@ -53,4 +54,14 @@ model OrderItem {
   product   Product @relation(fields: [productId], references: [id])
   quantity  Int
   price     Float
+}
+
+model ProductVariant {
+  id        Int     @id @default(autoincrement())
+  productId Int
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  storage   String  // "128GB", "256GB", "512GB", "1TB"
+  price     Float
+  oldPrice  Float?
+  stock     Int     @default(0)
 }

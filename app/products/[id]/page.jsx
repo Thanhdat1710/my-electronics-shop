@@ -13,21 +13,29 @@ export default function ProductDetail() {
   const [selectedImg, setSelectedImg] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [selectedColor, setSelectedColor] = useState(0);
+  const [selectedVariant, setSelectedVariant] = useState(null); // ← variant đang chọn
   const [zoomImg, setZoomImg] = useState(false);
   const [activeTab, setActiveTab] = useState('specs');
-  const [reviews, setReviews] = useState([
+  const [reviews] = useState([
     { name: 'Nguyễn Văn Trung', rating: 5, date: '20/05/2026', comment: 'Sản phẩm tuyệt vời, đúng như mô tả. Giao hàng nhanh, đóng gói cẩn thận!' },
-    { name: 'Trần Thị Bích', rating: 4, date: '18/05/2026', comment: 'Chất lượng tốt, giá hợp lý. Sẽ ủng hộ shop dài dài.' },
-    { name: 'Lê Văn Cường', rating: 5, date: '15/05/2026', comment: 'Mua lần 2 rồi, vẫn rất hài lòng. Shop tư vấn nhiệt tình.' },
+    { name: 'Trần Thị Bích',    rating: 4, date: '18/05/2026', comment: 'Chất lượng tốt, giá hợp lý. Sẽ ủng hộ shop dài dài.' },
+    { name: 'Lê Văn Cường',     rating: 5, date: '15/05/2026', comment: 'Mua lần 2 rồi, vẫn rất hài lòng. Shop tư vấn nhiệt tình.' },
   ]);
 
   const colors = ['Đen', 'Trắng', 'Xanh', 'Bạc'];
+
+  // Danh mục có hỗ trợ chọn dung lượng
+  const VARIANT_CATEGORIES = ['phone', 'tablet', 'laptop'];
 
   useEffect(() => {
     fetch(`/api/products/${id}`)
       .then(res => res.json())
       .then(data => {
         setProduct(data);
+        // Tự động chọn variant đầu tiên nếu có
+        if (data.variants && data.variants.length > 0) {
+          setSelectedVariant(data.variants[0]);
+        }
         setLoading(false);
         fetch(`/api/products?category=${data.category}`)
           .then(r => r.json())
@@ -39,15 +47,32 @@ export default function ProductDetail() {
   if (loading) return <p style={{textAlign:'center', padding:'60px', color:'#94a3b8'}}>Đang tải...</p>;
   if (!product) return <p style={{textAlign:'center', padding:'60px', color:'#94a3b8'}}>Không tìm thấy sản phẩm</p>;
 
+  // Giá hiển thị: ưu tiên variant đang chọn, fallback về giá sản phẩm
+  const displayPrice    = selectedVariant ? selectedVariant.price    : product.price;
+  const displayOldPrice = selectedVariant ? selectedVariant.oldPrice : product.oldPrice;
+  const displayStock    = selectedVariant ? selectedVariant.stock    : product.stock;
+
+  const hasVariants = VARIANT_CATEGORIES.includes(product.category)
+                   && product.variants
+                   && product.variants.length > 0;
+
   function handleAddToCart() {
     const user = localStorage.getItem('user');
     if (!user) { alert('Vui lòng đăng nhập!'); router.push('/account'); return; }
-    for (let i = 0; i < quantity; i++) addItem(product);
+    const itemToAdd = {
+      ...product,
+      price: displayPrice,
+      // Thêm thông tin variant vào tên để phân biệt trong giỏ hàng
+      name: selectedVariant ? `${product.name} (${selectedVariant.storage})` : product.name,
+      // Dùng id kết hợp variant để tránh trùng key trong cart
+      id: selectedVariant ? `${product.id}-${selectedVariant.id}` : product.id,
+    };
+    for (let i = 0; i < quantity; i++) addItem(itemToAdd);
     router.push('/cart');
   }
 
-  const images = product.images && product.images.length > 0 ? product.images : null;
-  const specs = product.specs || [];
+  const images   = product.images && product.images.length > 0 ? product.images : null;
+  const specs    = product.specs || [];
   const avgRating = (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1);
 
   return (
@@ -60,7 +85,7 @@ export default function ProductDetail() {
 
         {/* Phần trên: ảnh + thông tin */}
         <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'24px', marginBottom:'24px', background:'white', borderRadius:'16px', border:'1px solid #f1f5f9', padding:'20px'}}>
-          
+
           {/* Ảnh sản phẩm */}
           <div>
             <div style={{position:'relative', height:'320px', background:'#f8fafc', borderRadius:'12px', overflow:'hidden', marginBottom:'12px', cursor:'zoom-in'}}
@@ -73,14 +98,10 @@ export default function ProductDetail() {
               )}
               {images && images.length > 1 && (
                 <>
-                  <button onClick={(e) => { e.stopPropagation(); setSelectedImg(i => (i - 1 + images.length) % images.length); }}
-                    style={{position:'absolute', left:'8px', top:'50%', transform:'translateY(-50%)', width:'32px', height:'32px', borderRadius:'50%', background:'white', border:'1px solid #e2e8f0', cursor:'pointer', fontSize:'16px', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 2px 8px rgba(0,0,0,0.1)'}}>
-                    ‹
-                  </button>
-                  <button onClick={(e) => { e.stopPropagation(); setSelectedImg(i => (i + 1) % images.length); }}
-                    style={{position:'absolute', right:'8px', top:'50%', transform:'translateY(-50%)', width:'32px', height:'32px', borderRadius:'50%', background:'white', border:'1px solid #e2e8f0', cursor:'pointer', fontSize:'16px', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 2px 8px rgba(0,0,0,0.1)'}}>
-                    ›
-                  </button>
+                  <button onClick={(e) => { e.stopPropagation(); setSelectedImg(i => (i-1+images.length)%images.length); }}
+                    style={{position:'absolute', left:'8px', top:'50%', transform:'translateY(-50%)', width:'32px', height:'32px', borderRadius:'50%', background:'white', border:'1px solid #e2e8f0', cursor:'pointer', fontSize:'16px', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 2px 8px rgba(0,0,0,0.1)'}}>‹</button>
+                  <button onClick={(e) => { e.stopPropagation(); setSelectedImg(i => (i+1)%images.length); }}
+                    style={{position:'absolute', right:'8px', top:'50%', transform:'translateY(-50%)', width:'32px', height:'32px', borderRadius:'50%', background:'white', border:'1px solid #e2e8f0', cursor:'pointer', fontSize:'16px', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 2px 8px rgba(0,0,0,0.1)'}}>›</button>
                 </>
               )}
               <div style={{position:'absolute', bottom:'8px', right:'8px', background:'rgba(0,0,0,0.4)', color:'white', fontSize:'11px', padding:'3px 8px', borderRadius:'8px'}}>
@@ -114,18 +135,42 @@ export default function ProductDetail() {
               <span style={{fontSize:'13px', color:'#64748b'}}>{avgRating} ({reviews.length} đánh giá)</span>
             </div>
 
-            {/* Giá */}
+            {/* Giá — cập nhật theo variant */}
             <div style={{marginBottom:'16px'}}>
-              <span style={{fontSize:'28px', color:'#3b82f6', fontWeight:'700'}}>{product.price.toLocaleString('vi-VN')}đ</span>
-              {product.oldPrice && (
-                <span style={{fontSize:'16px', color:'#94a3b8', textDecoration:'line-through', marginLeft:'10px'}}>{product.oldPrice.toLocaleString('vi-VN')}đ</span>
+              <span style={{fontSize:'28px', color:'#3b82f6', fontWeight:'700'}}>{displayPrice.toLocaleString('vi-VN')}đ</span>
+              {displayOldPrice && (
+                <span style={{fontSize:'16px', color:'#94a3b8', textDecoration:'line-through', marginLeft:'10px'}}>{displayOldPrice.toLocaleString('vi-VN')}đ</span>
               )}
-              {product.oldPrice && (
+              {displayOldPrice && (
                 <span style={{fontSize:'13px', color:'#22c55e', marginLeft:'8px', fontWeight:'500'}}>
-                  Tiết kiệm {(product.oldPrice - product.price).toLocaleString('vi-VN')}đ
+                  Tiết kiệm {(displayOldPrice - displayPrice).toLocaleString('vi-VN')}đ
                 </span>
               )}
             </div>
+
+            {/* ── Chọn dung lượng (chỉ hiện với phone/tablet/laptop có variants) ── */}
+            {hasVariants && (
+              <div style={{marginBottom:'16px'}}>
+                <p style={{fontSize:'13px', color:'#64748b', marginBottom:'8px', fontWeight:'500'}}>
+                  Dung lượng: <strong style={{color:'#1e293b'}}>{selectedVariant?.storage}</strong>
+                </p>
+                <div style={{display:'flex', gap:'8px', flexWrap:'wrap'}}>
+                  {product.variants.map(v => (
+                    <button key={v.id} onClick={() => setSelectedVariant(v)}
+                      style={{
+                        padding:'6px 14px', borderRadius:'8px', cursor:'pointer', fontSize:'12px', fontWeight:'500',
+                        border:     selectedVariant?.id === v.id ? '2px solid #3b82f6' : '1px solid #e2e8f0',
+                        background: selectedVariant?.id === v.id ? '#eff6ff' : 'white',
+                        color:      selectedVariant?.id === v.id ? '#3b82f6' : '#64748b',
+                        opacity:    v.stock === 0 ? 0.4 : 1,
+                      }}>
+                      {v.storage}
+                      {v.stock === 0 && <span style={{fontSize:'10px', marginLeft:'4px'}}>(hết)</span>}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Chọn màu */}
             <div style={{marginBottom:'16px'}}>
@@ -147,9 +192,9 @@ export default function ProductDetail() {
                 <button onClick={() => setQuantity(q => Math.max(1, q-1))}
                   style={{width:'36px', height:'36px', borderRadius:'10px', border:'1px solid #e2e8f0', background:'#f8fafc', cursor:'pointer', fontSize:'18px'}}>−</button>
                 <span style={{fontSize:'16px', fontWeight:'600', minWidth:'30px', textAlign:'center'}}>{quantity}</span>
-                <button onClick={() => setQuantity(q => Math.min(product.stock, q+1))}
+                <button onClick={() => setQuantity(q => Math.min(displayStock, q+1))}
                   style={{width:'36px', height:'36px', borderRadius:'10px', border:'1px solid #e2e8f0', background:'#f8fafc', cursor:'pointer', fontSize:'18px'}}>+</button>
-                <span style={{fontSize:'12px', color:'#94a3b8'}}>Còn {product.stock} sản phẩm</span>
+                <span style={{fontSize:'12px', color:'#94a3b8'}}>Còn {displayStock} sản phẩm</span>
               </div>
             </div>
 
@@ -158,7 +203,7 @@ export default function ProductDetail() {
               style={{width:'100%', padding:'14px', background:'#3b82f6', color:'white', fontWeight:'600', borderRadius:'12px', border:'none', cursor:'pointer', fontSize:'15px', marginBottom:'12px'}}>
               🛒 Thêm vào giỏ hàng
             </button>
-            <button onClick={() => { handleAddToCart(); }}
+            <button onClick={handleAddToCart}
               style={{width:'100%', padding:'14px', background:'#1e293b', color:'white', fontWeight:'600', borderRadius:'12px', border:'none', cursor:'pointer', fontSize:'15px'}}>
               ⚡ Mua ngay
             </button>
@@ -173,7 +218,7 @@ export default function ProductDetail() {
           </div>
         </div>
 
-        {/* Tabs: Mô tả, Thông số, Bảo hành */}
+        {/* Tabs */}
         <div style={{background:'white', borderRadius:'16px', border:'1px solid #f1f5f9', marginBottom:'24px', overflow:'hidden'}}>
           <div style={{display:'flex', borderBottom:'1px solid #f1f5f9'}}>
             {[['specs','📋 Thông số'],['desc','📖 Mô tả'],['warranty','🛡️ Bảo hành']].map(([key, label]) => (
@@ -183,7 +228,6 @@ export default function ProductDetail() {
               </button>
             ))}
           </div>
-
           <div style={{padding:'20px'}}>
             {activeTab === 'specs' && (
               <div>
@@ -200,23 +244,19 @@ export default function ProductDetail() {
               <div>
                 <h3 style={{fontSize:'15px', fontWeight:'600', color:'#1e293b', marginBottom:'16px'}}>Giới thiệu sản phẩm</h3>
                 <p style={{fontSize:'13px', color:'#64748b', lineHeight:'1.8', marginBottom:'12px'}}>{product.description}</p>
-                <p style={{fontSize:'13px', color:'#64748b', lineHeight:'1.8', marginBottom:'12px'}}>
-                  TechZone tự hào là đại lý ủy quyền chính thức, cam kết cung cấp sản phẩm 100% chính hãng với giá tốt nhất thị trường. Tất cả sản phẩm đều được kiểm tra kỹ lưỡng trước khi giao đến tay khách hàng.
-                </p>
-                <p style={{fontSize:'13px', color:'#64748b', lineHeight:'1.8'}}>
-                  Với đội ngũ kỹ thuật viên chuyên nghiệp và trung tâm bảo hành uy tín, chúng tôi luôn đảm bảo mang đến trải nghiệm mua sắm tốt nhất cho khách hàng.
-                </p>
+                <p style={{fontSize:'13px', color:'#64748b', lineHeight:'1.8', marginBottom:'12px'}}>TechZone tự hào là đại lý ủy quyền chính thức, cam kết cung cấp sản phẩm 100% chính hãng với giá tốt nhất thị trường.</p>
+                <p style={{fontSize:'13px', color:'#64748b', lineHeight:'1.8'}}>Với đội ngũ kỹ thuật viên chuyên nghiệp và trung tâm bảo hành uy tín, chúng tôi luôn đảm bảo mang đến trải nghiệm mua sắm tốt nhất.</p>
               </div>
             )}
             {activeTab === 'warranty' && (
               <div>
                 <h3 style={{fontSize:'15px', fontWeight:'600', color:'#1e293b', marginBottom:'16px'}}>Chính sách bảo hành</h3>
                 {[
-                  ['🛡️ Thời gian bảo hành', '12 tháng bảo hành chính hãng tại trung tâm bảo hành toàn quốc'],
-                  ['🔄 Đổi trả', 'Đổi trả miễn phí trong 7 ngày nếu sản phẩm lỗi do nhà sản xuất'],
-                  ['📞 Hỗ trợ', 'Hotline 1800-xxxx hỗ trợ 24/7, kỹ thuật viên tư vấn miễn phí'],
-                  ['🚚 Giao hàng', 'Miễn phí giao hàng toàn quốc, giao trong ngày nội thành HN & HCM'],
-                  ['💳 Thanh toán', 'Hỗ trợ COD, chuyển khoản, ví điện tử MoMo, ZaloPay'],
+                  ['🛡️ Thời gian bảo hành','12 tháng bảo hành chính hãng tại trung tâm bảo hành toàn quốc'],
+                  ['🔄 Đổi trả','Đổi trả miễn phí trong 7 ngày nếu sản phẩm lỗi do nhà sản xuất'],
+                  ['📞 Hỗ trợ','Hotline 1800-xxxx hỗ trợ 24/7, kỹ thuật viên tư vấn miễn phí'],
+                  ['🚚 Giao hàng','Miễn phí giao hàng toàn quốc, giao trong ngày nội thành HN & HCM'],
+                  ['💳 Thanh toán','Hỗ trợ COD, chuyển khoản, ví điện tử MoMo, ZaloPay'],
                 ].map(([title, desc], i) => (
                   <div key={i} style={{marginBottom:'16px', padding:'12px', background:'#f8fafc', borderRadius:'10px'}}>
                     <p style={{fontSize:'13px', fontWeight:'600', color:'#1e293b', marginBottom:'4px'}}>{title}</p>
@@ -242,9 +282,7 @@ export default function ProductDetail() {
             <div key={i} style={{padding:'14px 0', borderBottom: i < reviews.length-1 ? '1px solid #f8fafc' : 'none'}}>
               <div style={{display:'flex', justifyContent:'space-between', marginBottom:'6px'}}>
                 <div style={{display:'flex', alignItems:'center', gap:'8px'}}>
-                  <div style={{width:'32px', height:'32px', background:'#eff6ff', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'14px', fontWeight:'600', color:'#3b82f6'}}>
-                    {r.name[0]}
-                  </div>
+                  <div style={{width:'32px', height:'32px', background:'#eff6ff', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'14px', fontWeight:'600', color:'#3b82f6'}}>{r.name[0]}</div>
                   <span style={{fontSize:'13px', fontWeight:'600', color:'#1e293b'}}>{r.name}</span>
                 </div>
                 <span style={{fontSize:'11px', color:'#94a3b8'}}>{r.date}</span>
@@ -323,7 +361,7 @@ export default function ProductDetail() {
             <div>
               <h4 style={{fontSize:'14px', fontWeight:'600', marginBottom:'16px'}}>Liên hệ với chúng tôi</h4>
               <p style={{fontSize:'12px', color:'#94a3b8', marginBottom:'12px'}}>Theo dõi TechZone trên mạng xã hội:</p>
-              {['Facebook', 'Instagram', 'YouTube', 'TikTok'].map(s => (
+              {['Facebook','Instagram','YouTube','TikTok'].map(s => (
                 <p key={s} style={{fontSize:'12px', color:'#60a5fa', marginBottom:'6px', cursor:'pointer'}}>→ {s}</p>
               ))}
             </div>

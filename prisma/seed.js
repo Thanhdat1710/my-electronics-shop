@@ -1,6 +1,29 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
+function getVariantPlans(product) {
+  const basePrice = Number(product.price) || 0;
+  const baseOldPrice = Number(product.oldPrice) || 0;
+
+  if (product.category === 'phone' || product.category === 'tablet') {
+    return [
+      { storage: '8GB/256GB', price: basePrice - 1000000, oldPrice: baseOldPrice ? baseOldPrice - 1000000 : null, stock: Math.max(5, Math.floor((product.stock || 10) / 4)) },
+      { storage: '8GB/512GB', price: basePrice, oldPrice: baseOldPrice || null, stock: Math.max(8, Math.floor((product.stock || 10) / 3)) },
+      { storage: '12GB/512GB', price: basePrice + 1500000, oldPrice: baseOldPrice ? baseOldPrice + 1500000 : null, stock: Math.max(3, Math.floor((product.stock || 10) / 5)) },
+    ];
+  }
+
+  if (product.category === 'laptop') {
+    return [
+      { storage: '12GB/256GB', price: basePrice - 700000, oldPrice: baseOldPrice ? baseOldPrice - 700000 : null, stock: Math.max(5, Math.floor((product.stock || 10) / 4)) },
+      { storage: '16GB/512GB', price: basePrice, oldPrice: baseOldPrice || null, stock: Math.max(7, Math.floor((product.stock || 10) / 3)) },
+      { storage: '16GB/1TB', price: basePrice + 1300000, oldPrice: baseOldPrice ? baseOldPrice + 1300000 : null, stock: Math.max(3, Math.floor((product.stock || 10) / 6)) },
+    ];
+  }
+
+  return [];
+}
+
 async function main() {
   await prisma.product.deleteMany();
 
@@ -228,7 +251,18 @@ async function main() {
   ];
 
   for (const product of products) {
-    await prisma.product.create({ data: product });
+    const variants = getVariantPlans(product);
+
+    await prisma.product.create({
+      data: {
+        ...product,
+        variants: variants.length
+          ? {
+              create: variants,
+            }
+          : undefined,
+      },
+    });
   }
 
   console.log('✅ Đã seed xong dữ liệu với ảnh thật!');
