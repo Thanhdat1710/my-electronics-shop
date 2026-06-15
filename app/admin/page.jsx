@@ -17,7 +17,25 @@ export default function AdminPage() {
     name:'', description:'', price:'', oldPrice:'', salePercent:'',
     category:'laptop', emoji:'💻', badge:'', stock:'', images:'', specs:'', variants:[]
   });
+const [imageTab, setImageTab] = useState('link'); // 'link' | 'upload'
+const [uploadedImages, setUploadedImages] = useState([]); // [{url, name}]
 
+// Hàm xử lý upload ảnh (chuyển sang base64 hoặc object URL)
+const handleImageUpload = (files) => {
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const newImg = { url: reader.result, name: file.name };
+      setUploadedImages(prev => {
+        const next = [...prev, newImg];
+        // Ghi vào form.images để submit cùng form
+        setForm(f => ({...f, images: next.map(i => i.url).join('\n')}));
+        return next;
+      });
+    };
+    reader.readAsDataURL(file);
+  });
+};
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     if (user.role !== 'admin') { router.push('/'); return; }
@@ -308,13 +326,113 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              {/* Link ảnh */}
-              <div style={{marginTop:'10px'}}>
-                <label style={{fontSize:'12px', color:'#64748b', display:'block', marginBottom:'4px'}}>Link ảnh (mỗi link 1 dòng)</label>
-                <textarea value={form.images} onChange={e => setForm({...form, images: e.target.value})}
-                  placeholder={"https://images.unsplash.com/...\nhttps://images.unsplash.com/..."} rows={4}
-                  style={{width:'100%', padding:'8px 10px', border:'1px solid #e2e8f0', borderRadius:'8px', fontSize:'13px', outline:'none', boxSizing:'border-box', resize:'vertical'}} />
-              </div>
+{/* Link ảnh + Upload ảnh */}
+<div style={{marginTop:'10px'}}>
+  <label style={{fontSize:'12px', color:'#64748b', display:'block', marginBottom:'8px', fontWeight:'600'}}>
+    Ảnh sản phẩm
+  </label>
+
+  {/* Tab chọn kiểu thêm ảnh */}
+  <div style={{display:'flex', gap:'8px', marginBottom:'10px'}}>
+    <button type="button"
+      onClick={() => setImageTab('link')}
+      style={{
+        padding:'6px 14px', borderRadius:'6px', fontSize:'12px', cursor:'pointer', border:'none',
+        background: imageTab === 'link' ? '#6366f1' : '#f1f5f9',
+        color: imageTab === 'link' ? '#fff' : '#64748b',
+        fontWeight: imageTab === 'link' ? '600' : '400',
+        transition:'all 0.2s'
+      }}>
+      🔗 Dán link ảnh
+    </button>
+    <button type="button"
+      onClick={() => setImageTab('upload')}
+      style={{
+        padding:'6px 14px', borderRadius:'6px', fontSize:'12px', cursor:'pointer', border:'none',
+        background: imageTab === 'upload' ? '#6366f1' : '#f1f5f9',
+        color: imageTab === 'upload' ? '#fff' : '#64748b',
+        fontWeight: imageTab === 'upload' ? '600' : '400',
+        transition:'all 0.2s'
+      }}>
+      📁 Tải ảnh lên
+    </button>
+  </div>
+
+  {/* Tab: Dán link */}
+  {imageTab === 'link' && (
+    <textarea
+      value={form.images}
+      onChange={e => setForm({...form, images: e.target.value})}
+      placeholder={"https://images.unsplash.com/...\nhttps://example.com/anh2.jpg"}
+      rows={4}
+      style={{width:'100%', padding:'8px 10px', border:'1px solid #e2e8f0', borderRadius:'8px', fontSize:'13px', outline:'none', boxSizing:'border-box', resize:'vertical'}}
+    />
+  )}
+
+  {/* Tab: Upload từ máy tính */}
+  {imageTab === 'upload' && (
+    <div>
+      {/* Vùng kéo thả / chọn file */}
+      <label style={{
+        display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
+        border:'2px dashed #c7d2fe', borderRadius:'10px', padding:'24px', cursor:'pointer',
+        background:'#f8f9ff', transition:'background 0.2s'
+      }}
+        onDragOver={e => { e.preventDefault(); }}
+        onDrop={e => {
+          e.preventDefault();
+          const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+          handleImageUpload(files);
+        }}
+      >
+        <span style={{fontSize:'28px', marginBottom:'6px'}}>🖼️</span>
+        <span style={{fontSize:'13px', color:'#6366f1', fontWeight:'600'}}>Nhấn để chọn ảnh</span>
+        <span style={{fontSize:'12px', color:'#94a3b8', marginTop:'2px'}}>hoặc kéo thả vào đây • JPG, PNG, WEBP</span>
+        <input
+          type="file" multiple accept="image/*"
+          style={{display:'none'}}
+          onChange={e => handleImageUpload(Array.from(e.target.files))}
+        />
+      </label>
+
+      {/* Preview ảnh đã upload */}
+      {uploadedImages.length > 0 && (
+        <div style={{display:'flex', flexWrap:'wrap', gap:'8px', marginTop:'10px'}}>
+          {uploadedImages.map((img, idx) => (
+            <div key={idx} style={{position:'relative', width:'80px', height:'80px'}}>
+              <img src={img.url} alt=""
+                style={{width:'80px', height:'80px', objectFit:'cover', borderRadius:'8px', border:'1px solid #e2e8f0'}} />
+              <button type="button"
+                onClick={() => {
+                  const next = uploadedImages.filter((_, i) => i !== idx);
+                  setUploadedImages(next);
+                  setForm({...form, images: next.map(i => i.url).join('\n')});
+                }}
+                style={{
+                  position:'absolute', top:'-6px', right:'-6px',
+                  width:'20px', height:'20px', borderRadius:'50%',
+                  background:'#ef4444', color:'#fff', border:'none',
+                  fontSize:'11px', cursor:'pointer', display:'flex',
+                  alignItems:'center', justifyContent:'center', fontWeight:'700'
+                }}>✕</button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )}
+
+  {/* Preview ảnh từ link */}
+  {imageTab === 'link' && form.images && (
+    <div style={{display:'flex', flexWrap:'wrap', gap:'8px', marginTop:'10px'}}>
+      {form.images.split('\n').filter(l => l.trim()).map((url, idx) => (
+        <img key={idx} src={url.trim()} alt=""
+          onError={e => e.target.style.display='none'}
+          style={{width:'80px', height:'80px', objectFit:'cover', borderRadius:'8px', border:'1px solid #e2e8f0'}} />
+      ))}
+    </div>
+  )}
+</div>
 
               {/* Thông số kỹ thuật */}
               <div style={{marginTop:'10px'}}>
